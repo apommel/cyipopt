@@ -6,6 +6,7 @@ python:
   - 3.8
 before_install:
   - sudo apt-get update
+  - sudo apt-get install build-essential gfortran libblas-dev liblapack-dev pkg-config
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
     else
@@ -18,8 +19,17 @@ before_install:
   - conda config --add channels conda-forge
   - conda update -q conda
 install:
-  - conda create -q -n test-env python=$TRAVIS_PYTHON_VERSION numpy cython ipopt future six setuptools sphinx numpydoc pkg-config
+  - conda create -q -n test-env python=$TRAVIS_PYTHON_VERSION numpy cython future six setuptools sphinx numpydoc pkg-config
   - source activate test-env
+  # Build Ipopt from source
+  - cd $HOME && git clone https://github.com/coin-or/coinbrew.git
+  - chmod u+x coinbrew
+  - coinbrew/coinbrew fetch Ipopt@3.13.2 --no-prompt
+  - coinbrew/coinbrew build Ipopt --prefix=$HOME/coinbrew --test --no-prompt --verbosity=3
+  - export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$HOME/coinbrew/build/ThirdParty/ASL/2.0:$HOME/coinbrew/build/ThirdPartyMumps/2.1:$HOME/coinbrew/build/Ipopt/3.13.2
+  - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/coinbrew/build/Ipopt/3.13.2/build/Ipopt/3.13.2/src/Interfaces/.libs
+  - chmod +x -R $HOME/coinbrew
+  - cd $TRAVIS_BUILD_DIR
 before_script:
   - conda info
   - conda list
